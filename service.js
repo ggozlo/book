@@ -1,6 +1,5 @@
 const dao = require('./dao');
 const ev = require('events');
-const { rejects } = require('assert');
 
 let emitter = new ev();
 
