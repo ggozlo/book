@@ -1,7 +1,5 @@
 
 const db = require('mysql');
-const readline = require('readline');
-
 
 const connection = db.createConnection({
     host : 'localhost',
@@ -10,39 +8,19 @@ const connection = db.createConnection({
     database : 'bookstore'
 });
 
+exports.execute = (sql,func) => {
 
-exports.saveBook = function(data) {
-        console.log(data);
-        connection.query(`INSERT INTO book_list
-                    (book_name, book_author, book_ISBN, book_publisher, publication_date ) 
-                    values ('${data.name}','${data.author}','${data.publisher}','${data.ISBN}','${data.publication_date}');`,
-                    (error, results, fields) => {
-                        try {
-                        if(error) throw error;
-                        } catch (err) {
-                            console.error(err.code);
-                        }
-                    });
-} 
+    connection.query(sql, (error, results, fields) => {
 
-exports.showAll = () => {
-
-    connection.query(`SELECT 
-        book_name, book_author, book_ISBN, book_publisher, date_format(publication_date, '%Y-%m-%d')
-        FROM book_list`, 
-    (error, results) => {
         try {
             if(error) throw error;
 
-            console.log(`|제목  |저자   |출판사   |ISBN     |출간일	|`);
-            console.log('======================================');
-            for (const res of results) {
-                 console.log(`|${res.book_name}|${res.book_author}|${res.book_ISBN}|${res.book_publisher}|${res["date_format(publication_date, '%Y-%m-%d')"]}|`);
-            }
+            func(results);
 
         } catch (err) {
-            console.error(err.code);
+            console.error(err.message);
         } 
+
     });
 
 }
