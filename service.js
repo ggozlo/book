@@ -37,6 +37,7 @@ const targetCheck = (command) => {
 emitter.on(events[0], () => {
     process.stdout.write("\u001b[2J\u001b[0;0H");
 });
+
 emitter.on(events[1], ()=> {
     process.exit();
 });
@@ -47,10 +48,8 @@ emitter.on(events[2], (command)=> {
         `INSERT INTO book_list
         (book_name, book_author, book_ISBN, book_publisher, publication_date ) 
         values ('${command[0]}','${command[1]}','${command[2]}','${command[3]}','${command[4]}');` ,
-
         () => {console.log('save complete!');} 
     );
-
 });
 
 // show 이벤트
