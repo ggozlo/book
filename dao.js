@@ -8,19 +8,20 @@ const connection = db.createConnection({
     database : 'bookstore'
 });
 
-exports.execute = (sql,func) => {
+exports.execute = (sql,func,pId) => {
 
     connection.query(sql, (error, results, fields) => {
 
         try {
             if(error) throw error;
 
-            func(results);
-
+            func(results, pId);
+            if(pId) {
+                console.log(pId, 'task done');
+            }
         } catch (err) {
-            console.error(err.message);
+            console.error(pId, err.message);
         } 
-
     });
 
 }
