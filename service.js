@@ -1,11 +1,13 @@
-const dao = require('./dao');
+const {DAO} = require('./dao');
 const ev = require('events');
 
 
 
 exports.Service =  class Service {
 
-    constructor() {
+    constructor(dao) {
+        // 나중엔 dao 를 받아서...
+        this.dao = new DAO();
         this.events = ['clear', 'exit', 'save', 'show', 'modify', 'remove'];
     }
 
@@ -19,7 +21,7 @@ exports.Service =  class Service {
 
     // save 이벤트
     save(command, pId) {
-        dao.execute(
+        this.dao.execute(
             `INSERT INTO book_list
             (book_name, book_author, book_ISBN, book_publisher, publication_date ) 
             values ('${command[0]}','${command[1]}','${command[2]}','${command[3]}','${command[4]}');` ,
@@ -36,9 +38,9 @@ exports.Service =  class Service {
             FROM book_list`;
 
         if(secondCommand  === 'all' ) {
-            dao.execute(selectQuery , showFunc ,pId);
+            this.dao.execute(selectQuery , showFunc ,pId);
         } else if(secondCommand === 'name') {
-            dao.execute(selectQuery + ` WHERE book_name LIKE '%${command.shift()}%'`, showFunc ,pId);
+            this.dao.execute(selectQuery + ` WHERE book_name LIKE '%${command.shift()}%'`, showFunc ,pId);
         } else {
             console.error('잘못된 서브 커맨드 입니다.');
         }
@@ -49,7 +51,7 @@ exports.Service =  class Service {
         
         targetCheck(command, pId)
         .then( (targetId) => {
-            dao.execute(`
+            this.dao.execute(`
             UPDATE book_list SET 
                 book_name = '${command[0]}',
                 book_author = '${command[1]}',
@@ -60,22 +62,21 @@ exports.Service =  class Service {
             (results) => {}
             ,pId);
         });
-
     };
 
     // remove 이벤트
     remove(command, pId) {
         const secondCommand = command.shift();
         if( secondCommand == 'all' ) {
-            dao.execute(
+            this.dao.execute(
                 `truncate booK_list;`, 
                 function (results) {}
                 ,pId
             );
         } else if (secondCommand == 'id') {
-            targetCheck(command, pId)
+            targetCheck(this.dao, command, pId)
             .then( (targetId) => {
-                dao.execute(
+                this.dao.execute(
                     `DELETE FROM book_list WHERE book_id = ${targetId} ;`,
                     (results) => {}
                     ,pId
@@ -97,7 +98,7 @@ function showFunc (results) {
     }
 }
 
-function targetCheck(command, pId)  {
+function targetCheck(dao, command, pId)  {
     return new Promise((resolve) => {
         const targetId = command.shift();
         dao.execute( 
