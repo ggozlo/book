@@ -1,7 +1,4 @@
 const {DAO} = require('./dao');
-const ev = require('events');
-
-
 
 exports.Service =  class Service {
 
@@ -11,45 +8,46 @@ exports.Service =  class Service {
         this.events = ['clear', 'exit', 'save', 'show', 'modify', 'remove'];
     }
 
-    clear(command, pId) {
+    clear(task) {
         process.stdout.write("\u001b[2J\u001b[0;0H");
     };
 
-    exit(command, pId) {
+    exit(task) {
         process.exit();
     };
 
     // save 이벤트
-    save(command, pId) {
+    save(task) {
         this.dao.execute(
             `INSERT INTO book_list
             (book_name, book_author, book_ISBN, book_publisher, publication_date ) 
-            values ('${command[0]}','${command[1]}','${command[2]}','${command[3]}','${command[4]}');` ,
-            () => { } 
-            ,pId
-        );
+            values ('${task.command[0]}','${task.command[1]}','${task.command[2]}','${task.command[3]}','${task.command[4]}');` , 
+            task);
     };
 
     // show 이벤트
-    show(command, pId) {
-        const secondCommand = command.shift();
+    show(task) {
+        const secondCommand = task.shiftCommand();
         const selectQuery = `SELECT 
             book_id,book_name, book_author, book_ISBN, book_publisher, date_format(publication_date, '%Y-%m-%d')
             FROM book_list`;
 
         if(secondCommand  === 'all' ) {
-            this.dao.execute(selectQuery , showFunc ,pId);
+            return this.dao.execute(selectQuery ,task);
         } else if(secondCommand === 'name') {
-            this.dao.execute(selectQuery + ` WHERE book_name LIKE '%${command.shift()}%'`, showFunc ,pId);
+            return this.dao.execute(selectQuery + ` WHERE book_name LIKE '%${task.command.shift()}%'` ,task);
         } else {
-            console.error('잘못된 서브 커맨드 입니다.');
+            return new Promise((resolve, reject)=> {
+                reject( new Error(task.pId +' 잘못된 서브 커맨드 입니다.'))
+            })
         }
+        
     };
 
     // modify 이벤트
-    modify(command, pId) { 
+    modify(task) { 
         
-        targetCheck(command, pId)
+        targetCheck(task)
         .then( (targetId) => {
             this.dao.execute(`
             UPDATE book_list SET 
@@ -58,56 +56,48 @@ exports.Service =  class Service {
                 book_ISBN = '${command[2]}',
                 book_publisher = '${command[3]}', 
                 publication_date = '${command[4]}'
-                WHERE book_id = ${targetId};`,
-            (results) => {}
-            ,pId);
+                WHERE book_id = ${targetId};` ,
+            task);
         });
     };
 
     // remove 이벤트
-    remove(command, pId) {
-        const secondCommand = command.shift();
+    remove(task) {
+        const secondCommand = task.shiftCommand();
         if( secondCommand == 'all' ) {
             this.dao.execute(
                 `truncate booK_list;`, 
                 function (results) {}
-                ,pId
+                ,task
             );
         } else if (secondCommand == 'id') {
-            targetCheck(this.dao, command, pId)
+            targetCheck(this.dao, task)
             .then( (targetId) => {
                 this.dao.execute(
                     `DELETE FROM book_list WHERE book_id = ${targetId} ;`,
                     (results) => {}
-                    ,pId
+                    ,task
                     );
             });
         } else {
-            console.error(pId,'잘못된 서브 커맨드 입니다.');
+            console.error(task,'잘못된 서브 커맨드 입니다.');
         }
     };
 }
 
 
-// 공통 함수
-function showFunc (results) {
-    console.log(`|\t번호\t|\t제목\t|저자\t|\t출판사\t|\tISBN\t|\t출간일\t|`);
-    console.log('=========================================================================================');
-    for (const res of results) {
-        console.log(`|\t${res.book_id}\t|${res.book_name}\t|${res.book_author}\t|${res.book_ISBN}\t|${res.book_publisher}\t|${res["date_format(publication_date, '%Y-%m-%d')"]}\t|`);
-    }
-}
 
-function targetCheck(dao, command, pId)  {
+
+function targetCheck(dao, task)  {
     return new Promise((resolve) => {
         const targetId = command.shift();
         dao.execute( 
             `SELECT book_id FROM book_list WHERE book_id = ${targetId}`,
+            task, 
             (results) => {
                 if (results.length === 0 ) throw new Error('대상이 없습니다!');
                 resolve(targetId);
-            },
-            pId
+            }
         )
     });
 }
