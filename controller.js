@@ -1,14 +1,11 @@
 const readline = require('readline');
-const {Service} = require('./service');
-const {v4} = require('uuid');
+const {Task}  =require('./Task');
 
-const service = new Service();
 
 exports.Controller =  class Controller {
 
     constructor(service) {
-        // 나중엔 매개변수로....
-        this.service = new Service(); 
+        this.service =service;
         this.reader = readline.createInterface({
             input : process.stdin,
             output : process.stdout
@@ -21,31 +18,36 @@ exports.Controller =  class Controller {
             console.time(task.pId);
             let flag = true;
 
-            const head = task.shiftCommand();
-            for (const keyword of service.events) {
-                if(keyword == head) {
-                    
-                    service[keyword](task)
-                        .then((result) => {
-                            if (result.taskCommand[0] === 'show') {
-                                showFunc(result.resultValue);
-                                console.log(result.pId, 'task done');
-                            } else {
-                                console.log(result.pId, 'task done');
-                            }
-                            console.timeEnd(result.pId);
-                        })
-                        .catch((error) => {
-                            throw error;
-                        });
-                    
-                    flag = false;
-                    break;
-                }
-            };
+            try{
+
+                const head = task.shiftCommand();
+                for (const keyword of this.service.events) {
+                    if(keyword == head) {
+                            this.service[keyword](task)
+                            .then((result) => {
+                                if (result.taskCommand[0] === 'show') {
+                                    showFunc(result.resultValue);
+                                    console.log(result.pId, 'task done');
+                                } else {
+                                    console.log(result.pId, `task done`);
+                                }
+                                console.timeEnd(result.pId);
+                            })
+                            .catch((error) => {
+                                console.error(task.pId, error.message);
+                                console.timeEnd(task.pId);
+                            });
+                        
+                        flag = false;
+                        break;
+                    }
+                };
 
             if(flag) {
-                console.log(task.pId,'잘못된 커맨드 입니다.');
+                throw new Error('잘못된 커맨드 입니다.');
+            }
+            } catch (error) {
+                console.error(task.pId, error.message);
             }
 
         });
@@ -62,24 +64,3 @@ function showFunc (results) {
     }
 }
 
-class Task{
-
-    constructor(line) {
-        this.resultValue = null;
-        this.pId = '['+v4().substring(0,8)+']';
-        this.command = line.split(" ");
-        this.taskCommand = [];
-    }
-
-    shiftCommand() {
-        let head =  this.command.shift();
-        this.taskCommand.push(head);
-        return head;
-    }
-
-    
-
-}
-
-const controller = new this.Controller();
-controller.listen();

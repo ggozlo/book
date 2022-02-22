@@ -1,104 +1,115 @@
-const {DAO} = require('./dao');
-
 exports.Service =  class Service {
 
     constructor(dao) {
-        // 나중엔 dao 를 받아서...
-        this.dao = new DAO();
+        this.dao = dao;
         this.events = ['clear', 'exit', 'save', 'show', 'modify', 'remove'];
     }
 
     clear(task) {
-        process.stdout.write("\u001b[2J\u001b[0;0H");
+        return new Promise((resolve, reject) => {
+            process.stdout.write("\u001b[2J\u001b[0;0H");
+            resolve(task);
+        });
+        
     };
 
     exit(task) {
-        process.exit();
+        return new Promise((resolve, reject) => {
+            process.exit();
+        });
+        
     };
 
     // save 이벤트
     save(task) {
-        this.dao.execute(
-            `INSERT INTO book_list
-            (book_name, book_author, book_ISBN, book_publisher, publication_date ) 
-            values ('${task.command[0]}','${task.command[1]}','${task.command[2]}','${task.command[3]}','${task.command[4]}');` , 
-            task);
+
+        return new Promise((resolve, reject) => {
+            const insertResult = this.dao.execute(
+                `INSERT INTO book_list
+                (book_name, book_author, book_ISBN, book_publisher, publication_date ) 
+                values ('${task.command[0]}','${task.command[1]}','${task.command[2]}'
+                ,'${task.command[3]}','${task.command[4]}');` , 
+                task);
+            resolve(insertResult);
+        });
     };
 
     // show 이벤트
     show(task) {
         const secondCommand = task.shiftCommand();
         const selectQuery = `SELECT 
-            book_id,book_name, book_author, book_ISBN, book_publisher, date_format(publication_date, '%Y-%m-%d')
+            book_id,book_name, book_author, book_ISBN, book_publisher,
+             date_format(publication_date, '%Y-%m-%d')
             FROM book_list`;
-
-        if(secondCommand  === 'all' ) {
-            return this.dao.execute(selectQuery ,task);
-        } else if(secondCommand === 'name') {
-            return this.dao.execute(selectQuery + ` WHERE book_name LIKE '%${task.command.shift()}%'` ,task);
-        } else {
-            return new Promise((resolve, reject)=> {
+        return new Promise((resolve, reject) => {
+            let selectResult;
+            if(secondCommand  === 'all' ) {
+                selectResult = this.dao.execute(selectQuery ,task);
+            } else if(secondCommand === 'name') {
+                selectResult = this.dao.execute(
+                    selectQuery + ` WHERE book_name LIKE '%${task.shiftCommand()}%'` ,task);
+            } else { 
                 reject( new Error(task.pId +' 잘못된 서브 커맨드 입니다.'))
-            })
-        }
-        
+            }
+            // 여기서 데이터 가공...
+            resolve(selectResult);
+        })
     };
 
     // modify 이벤트
     modify(task) { 
+
+        return new Promise((resolve, reject) => {
         
-        targetCheck(task)
-        .then( (targetId) => {
-            this.dao.execute(`
-            UPDATE book_list SET 
-                book_name = '${command[0]}',
-                book_author = '${command[1]}',
-                book_ISBN = '${command[2]}',
-                book_publisher = '${command[3]}', 
-                publication_date = '${command[4]}'
-                WHERE book_id = ${targetId};` ,
-            task);
+            targetCheck(this.dao,task)
+            .then( (task) => {
+                this.dao.execute(`
+                    UPDATE book_list SET 
+                        book_name = '${task.command[1]}',
+                        book_author = '${task.command[2]}',
+                        book_ISBN = '${task.command[3]}',
+                        book_publisher = '${task.command[4]}', 
+                        publication_date = '${task.command[5]}'
+                        WHERE book_id = ${task.command[0]};` ,
+                        task)
+                    .then((task) => {
+                        // 여기서 데이터 가공... 
+                        resolve(task);
+                    });
+                
+            });
         });
     };
 
-    // remove 이벤트
+    // remove 메소드
     remove(task) {
         const secondCommand = task.shiftCommand();
-        if( secondCommand == 'all' ) {
-            this.dao.execute(
-                `truncate booK_list;`, 
-                function (results) {}
-                ,task
-            );
-        } else if (secondCommand == 'id') {
-            targetCheck(this.dao, task)
-            .then( (targetId) => {
-                this.dao.execute(
-                    `DELETE FROM book_list WHERE book_id = ${targetId} ;`,
-                    (results) => {}
-                    ,task
-                    );
-            });
-        } else {
-            console.error(task,'잘못된 서브 커맨드 입니다.');
-        }
+        return new Promise((resolve, reject) => {
+            
+            if( secondCommand == 'all' ) {
+                resolve(this.dao.execute(`truncate booK_list;` ,task ));
+            } else if (secondCommand == 'id') {
+                targetCheck(this.dao, task)
+                .then( (task) => {
+                    resolve(this.dao.execute(`
+                        DELETE FROM book_list
+                            WHERE book_id = ${task.command[0]} ;` ,task ));
+                });
+            } else {
+                task.message = '잘못된 서브 커맨드 입니다!.';
+                reject(task);
+            }
+        });
     };
 }
-
-
-
-
+// 공통함수
 function targetCheck(dao, task)  {
+    
     return new Promise((resolve) => {
-        const targetId = command.shift();
-        dao.execute( 
-            `SELECT book_id FROM book_list WHERE book_id = ${targetId}`,
-            task, 
-            (results) => {
-                if (results.length === 0 ) throw new Error('대상이 없습니다!');
-                resolve(targetId);
-            }
-        )
+        checkResult = dao.execute(`
+            SELECT book_id FROM book_list 
+                WHERE book_id = ${task.command[0]};`,task);
+        resolve(checkResult);
     });
 }
 

@@ -1,24 +1,13 @@
-
 const db = require('mysql');
 
 exports.DAO =  class DAO{
-
     constructor(connectData) {
-        // 나중엔 connectData 를 인수로...
-        this.connection = db.createConnection({
-            host : 'localhost',
-            user : 'quintet',
-            password : 'quintet',
-            database : 'bookstore'
-        });
+        this.connection = db.createConnection(connectData);
     }
-
     // 쿼리 메서드
-    execute (sql,task, callback) {
-
+    execute (sql,task) {
         return new Promise((resolve, reject) => {
             this.connection.query(sql, function(error, results, fields)  {
-
                 try {
                     if(error) {throw error};
                     task.resultValue = results;
@@ -30,7 +19,6 @@ exports.DAO =  class DAO{
             });
         });
     }
-
 }
 
 
