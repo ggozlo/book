@@ -13,12 +13,12 @@ exports.DAO =  class DAO{
                     task.resultValue = results;
                     resolve(task);
                 } catch (error) {
-                    task.errorMessage = error.message;
                     reject(error);
                 } 
             });
         });
     }
+   
 }
 
 

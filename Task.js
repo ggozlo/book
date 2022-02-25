@@ -6,12 +6,12 @@ exports.Task =  class Task{
         this.resultValue = null;
         this.pId = '['+v4().substring(0,8)+']';
         this.command = line.split(" ");
-        this.taskCommand = [];
-    } v 
+        this.taskedCommand = [];
+    } 
 
     shiftCommand() {
         let head =  this.command.shift();
-        this.taskCommand.push(head);
+        this.taskedCommand.push(head);
         return head;
     }
 }

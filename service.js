@@ -1,24 +1,8 @@
 exports.Service =  class Service {
 
     constructor(dao) {
-        this.dao = dao;
-        this.events = ['clear', 'exit', 'save', 'show', 'modify', 'remove'];
+        this.dao = dao
     }
-
-    clear(task) {
-        return new Promise((resolve, reject) => {
-            process.stdout.write("\u001b[2J\u001b[0;0H");
-            resolve(task);
-        });
-        
-    };
-
-    exit(task) {
-        return new Promise((resolve, reject) => {
-            process.exit();
-        });
-        
-    };
 
     // save 이벤트
     save(task) {
@@ -49,7 +33,7 @@ exports.Service =  class Service {
                 selectResult = this.dao.execute(
                     selectQuery + ` WHERE book_name LIKE '%${task.shiftCommand()}%'` ,task);
             } else { 
-                reject( new Error(task.pId +' 잘못된 서브 커맨드 입니다.'))
+                reject( new Error(' 잘못된 서브 커맨드 입니다.'))
             }
             // 여기서 데이터 가공...
             resolve(selectResult);
@@ -96,8 +80,7 @@ exports.Service =  class Service {
                             WHERE book_id = ${task.command[0]} ;` ,task ));
                 });
             } else {
-                task.message = '잘못된 서브 커맨드 입니다!.';
-                reject(task);
+                reject(new Error('잘못된 서브 커맨드 입니다.'));
             }
         });
     };
@@ -106,7 +89,7 @@ exports.Service =  class Service {
 function targetCheck(dao, task)  {
     
     return new Promise((resolve) => {
-        checkResult = dao.execute(`
+        let checkResult = dao.execute(`
             SELECT book_id FROM book_list 
                 WHERE book_id = ${task.command[0]};`,task);
         resolve(checkResult);
